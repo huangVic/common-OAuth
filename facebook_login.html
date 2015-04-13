@@ -1,0 +1,473 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>FB Login</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="http://getbootstrap.com/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="http://getbootstrap.com/examples/starter-template/starter-template.css" rel="stylesheet">
+
+    <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
+    <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
+    <script src="http://getbootstrap.com/assets/js/ie-emulation-modes-warning.js"></script>
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+<body>
+    <div id="fb-root"></div>  <!-- 一定要加 -->
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    <script type="text/javascript" src="http://connect.facebook.net/zh_TW/all.js"></script>
+    <script src="http://getbootstrap.com/dist/js/bootstrap.min.js"></script>
+
+    <script type="text/javascript">
+        //初始化
+        /*
+            Login Review的範圍、標準
+            範圍：若是要求以下基本資訊(basic permissions)，不需做Login Review
+            public_profile
+            user_friends
+            email
+            除此之外，都需要在 Facebook Developer > My App 中進行 APP 的 Login Review
+        */
+
+
+
+        /**************************************************************************/
+        // Load the SDK asynchronously
+        (function (d, s, id) {
+            var js, fjs = d.getElementsByTagName(s)[0];
+            if (d.getElementById(id)) return;
+            js = d.createElement(s); js.id = id;
+            js.src = "//connect.facebook.net/en_US/sdk.js";
+            fjs.parentNode.insertBefore(js, fjs);
+        }(document, 'script', 'facebook-jssdk'));
+
+
+
+        window.fbAsyncInit = function () {
+            FB.init({
+                appId: '你所申請的FB App ID',
+                cookie: true,  // enable cookies to allow the server to access
+                // the session
+                xfbml: true,  // parse social plugins on this page
+                version: 'v2.2' // use version 2.2
+            });
+
+            // Now that we've initialized the JavaScript SDK, we call
+            // FB.getLoginStatus().  This function gets the state of the
+            // person visiting this page and can return one of three states to
+            // the callback you provide.  They can be:
+            //
+            // 1. Logged into your app ('connected')
+            // 2. Logged into Facebook, but not your app ('not_authorized')
+            // 3. Not logged into Facebook and can't tell if they are logged into
+            //    your app or not.
+            //
+            // These three cases are handled in the callback function.
+
+            console.log('1. 初始化 FB API ');
+            console.log('#. fbAsyncInit ........ ');
+            FB.getLoginStatus(function (response) {
+                statusChangeCallback(response);
+            });
+        };
+
+
+       
+        var uid = "";
+        var access_token = "";
+
+        // # --- 2 ----
+        // This is called with the results from from FB.getLoginStatus().
+        function statusChangeCallback(response) {
+            console.log('2. 判斷 FB 回傳 status');
+            console.log(response);
+
+            // The response object is returned with a status field that lets the
+            // app know the current login status of the person.
+            // Full docs on the response object can be found in the documentation
+            // for FB.getLoginStatus().
+
+            if (response.status === 'connected') {
+                console.log('3. FB 已登入成功');
+
+                uid = response.authResponse.userID;
+                access_token = response.authResponse.accessToken;
+                
+                isLogin(); //顯示登入者資訊
+                getFriends(); //取得好友列表
+
+            } else if (response.status === 'not_authorized') {
+                // The person is logged into Facebook, but not your app.
+                document.getElementById('status').innerHTML = 'Please log ' + 'into this app.';
+            } else {
+                // The person is not logged into Facebook, so we're not sure if
+                // they are logged into this app or not.
+                document.getElementById('status').innerHTML = '請登入 facebook.';
+            }
+        }
+
+
+      
+        // # --- FB 登入按鈕 ----
+        function checkLoginState() {
+            console.log('#. FB 登入按鈕 - 檢查是否已登入');
+            FB.getLoginStatus(function (response) {
+                statusChangeCallback(response);
+            });
+        }
+
+        // # --- 客製化登入按鈕 ----
+        function goFbLogin() {
+            FB.login(function (response) {
+                console.log('#. FB.login.');
+                if (response.status === 'connected') {
+                    isLogin();
+                    //document.getElementById('feed-div').style.display="block";
+                } else if (response.status === 'not_authorized') {
+                    // The person is logged into Facebook, but not your app.
+                    document.getElementById('status').innerHTML = 'Please log ' + 'into this app.';
+                } else {
+                    // The person is not logged into Facebook, so we're not sure if
+                    // they are logged into this app or not.
+                    document.getElementById('status').innerHTML = '請登入 facebook.';
+                }
+            }, { scope: 'user_about_me, publish_stream, email, user_likes, friends_photos, read_stream, publish_actions, manage_pages, publish_pages' });
+        }
+
+
+
+        // # --- 登入後顯示登入者資訊 ----
+        function isLogin() {
+            FB.api('/me', function (response) {
+                console.log('#. 顯示登入者資訊: ' + response.name);
+                console.log(response);
+                document.getElementById('status').innerHTML = '哈囉 ' + response.name + ' 歡迎您的登入!' + "<br>"
+                     + 'id: ' + response.id + "<br>"
+                     + 'email: ' + response.email + "<br>"
+                     + 'gender: ' + response.gender + "<br><br>"
+
+
+                
+                userFeed();  // 顯示登入者動態消息
+            });
+        }
+
+        // # --- 取得好友列表 ----
+        function getFriends() {
+            FB.api('/me/taggable_friends', function (response) {
+                //taggable_friends: A list of friends that can be tagged or mentioned in stories published to Facebook.
+                if (response && !response.error) {
+                    console.log("#. 好友列表");
+                    console.log(response);
+                }
+            });
+        }
+
+       
+        
+        // # --- 顯示登入者動態消息 ----
+        function userFeed() {
+            FB.api('/me/feed', function (response) {
+                var rowItem = [];
+                var i = 0;
+
+                if (response.data && response.data.length > 0) {
+                    for (var x = 0 ; x < response.data.length; x++) {
+                        rowItem[i++] = "<tr>";
+                        rowItem[i++] = "<td>" + response.data[x].created_time + "</td>";
+                        if (response.data[x].picture && response.data[x].picture != "") {
+                            rowItem[i++] = "<td>" + "<img src='" + response.data[x].picture + "'>" + "</td>";
+                        } else {
+                            rowItem[i++] = "<td></td>";
+                        }
+
+                        rowItem[i++] = "<td>" + response.data[x].message + "</td>";
+                        if (response.data[x].comments && response.data[x].comments.data.length > 0) {
+                            rowItem[i++] = "<td>" + response.data[x].comments.data.length + "</td>";
+                        } else {
+                            rowItem[i++] = "<td>0</td>";
+                        }
+                        if (response.data[x].likes && response.data[x].likes.data.length > 0) {
+                            rowItem[i++] = "<td>" + response.data[x].likes.data.length + "</td>";
+                        } else {
+                            rowItem[i++] = "<td>0</td>";
+                        }
+                        rowItem[i++] = "</tr>";
+                    }
+                } else {
+                    rowItem[i++] = "<tr>";
+                    rowItem[i++] = "<td colspan='5'>尚無任何文章</td>";
+                    rowItem[i++] = "</tr>";
+                }
+                $("#me-Table tbody").html('');
+                $("#me-Table > tbody:last").append(rowItem.join(''))
+            });
+        }
+
+        
+
+        var feedData;
+
+        // # --- 顯示取得粉絲團訊息 ----
+        function getPagesFeed() {
+            FB.api('/IFit333/feed', function (response) {
+                var rowItem = [];
+                var i = 0;
+
+                if (response.data && response.data.length > 0) {
+                    feedData = response;
+                    for (var x = 0 ; x < response.data.length; x++) {
+                        rowItem[i++] = "<tr>";
+                        rowItem[i++] = "<td>" + response.data[x].created_time + "</td>";
+                        rowItem[i++] = "<td>" + response.data[x].from.name + "</td>";
+                        rowItem[i++] = "<td>" + response.data[x].message + "</td>";
+                        if (response.data[x].comments && response.data[x].comments.data.length > 0) {
+                            rowItem[i++] = "<td onclick=\"commentsItem('" + response.data[x].id + "')\" ><a>" + response.data[x].comments.data.length + "</a></td>";
+                        } else {
+                            rowItem[i++] = "<td>0</td>";
+                        }
+                        if (response.data[x].likes && response.data[x].likes.data.length > 0) {
+                            rowItem[i++] = "<td onclick=\"likesItem('" + response.data[x].id + "')\" ><a>" + response.data[x].likes.data.length + "</a></td>";
+                        } else {
+                            rowItem[i++] = "<td>0</td>";
+                        }
+                        rowItem[i++] = "</tr>";
+                    }
+                } else {
+                    rowItem[i++] = "<tr>";
+                    rowItem[i++] = "<td colspan='5'>尚無任何文章</td>";
+                    rowItem[i++] = "</tr>";
+                }
+                $("#feed-Table tbody").html('');
+                $("#feed-Table > tbody:last").append(rowItem.join(''))
+            });
+        }
+
+
+        // # --- 發布文章至粉絲團 ----
+        function postPagesFeed() {
+            var params = {
+                name: "Social Demo",
+                caption: "BBC One - Sherlock, Series 1",
+                message: 'test.' + Math.random(),
+                description: "Sherlock Holmes and Dr John Watson's adventures in 21st Century London. A thrilling, funny, fast-paced contemporary reimagining of the Arthur Conan Doyle classic. Made by Hartswood Films.",
+                link: "http://www.bbc.co.uk/programmes/b00t4pgh",
+                picture: "http://goo.gl/RNpxEN",
+                access_token: ""
+            };
+
+            var page_id = "粉資團 ID"; // 
+
+            if (uid != "" && access_token != "") {
+
+                FB.api('/' + uid + '/accounts', function (returnData) {
+                    console.log('=====================');
+                    console.log(returnData);
+
+                    // 找登入者有無管理 page_id 粉絲團的權限
+                    for (var i = 0; i < returnData.data.length; i++) {
+                        if (page_id == returnData.data[i].id) {
+                            params.access_token = returnData.data[i].access_token;
+                        }
+                    }
+
+                    if (params.access_token != "") {
+                        console.log("access_token: " + params.access_token);
+
+                        // post文章至粉絲團
+                        FB.api('/' + page_id + '/feed', 'post', params, function (response) {
+                            if (!response || response.error) {
+                                alert('Error occured');
+                            }
+                            else {
+                                alert('Post ID: ' + response.id);//回傳貼文的ID，之後可經由此ID刪除貼文
+                            }
+                        });
+
+                    }else{
+                        alert("沒有粉絲團發布權限");
+                    }
+
+                });
+
+            } else {
+                alert("請先登入FB !! ");
+            }
+
+            
+        }
+
+
+
+        
+
+        // # --- 顯示粉絲團留言內容 ----
+        function commentsItem(id) {
+            if (feedData && feedData.data.length > 0) {
+                var rowItem = [];
+                var i = 0;
+                $('#model-Table tbody').html('');
+                for (var x = 0 ; x < feedData.data.length; x++) {
+                    if (feedData.data[x].id == id) {
+                        for (var y = 0 ; y < feedData.data[x].comments.data.length; y++) {
+                            rowItem[i++] = "<tr>"
+                            rowItem[i++] = "<td>" + feedData.data[x].comments.data[y].created_time + "</td>"
+                            rowItem[i++] = "<td>" + feedData.data[x].comments.data[y].from.id + "</td>"
+                            rowItem[i++] = "<td>" + feedData.data[x].comments.data[y].from.name + "</td>"
+                            rowItem[i++] = "<td>" + feedData.data[x].comments.data[y].message + "</td>"
+                            rowItem[i++] = "</tr>"
+                        }
+                    }
+                }
+                $("#model-Table tbody").html("");
+                $("#model-Table > tbody:last").append(rowItem.join(''));
+                $('#myModal').modal('show');
+            }
+        }
+
+        // # --- 顯示粉絲團 Like內容 ----
+        function likesItem(id) {
+            if (feedData && feedData.data.length > 0) {
+                var rowItem = [];
+                var i = 0;
+                $('#model-Table tbody').html('');
+                for (var x = 0 ; x < feedData.data.length; x++) {
+                    if (feedData.data[x].id == id) {
+                        for (var y = 0 ; y < feedData.data[x].likes.data.length; y++) {
+                            rowItem[i++] = "<tr>"
+                            rowItem[i++] = "<td></td>"
+                            rowItem[i++] = "<td>" + feedData.data[x].likes.data[y].id + "</td>"
+                            rowItem[i++] = "<td>" + feedData.data[x].likes.data[y].name + "</td>"
+                            rowItem[i++] = "<td></td>"
+                            rowItem[i++] = "</tr>"
+                        }
+                    }
+                }
+                $("#model-Table tbody").html("");
+                $("#model-Table > tbody:last").append(rowItem.join(''));
+                $('#myModal').modal('show');
+            }
+        }
+
+
+        /**************************************************************************/
+
+    </script>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <fb:login-button scope="user_about_me, publish_stream, email, user_likes, friends_photos, read_stream, publish_actions, manage_pages, publish_pages" onlogin="checkLoginState();">
+                </fb:login-button>
+
+
+
+
+                <button id="logBtn" value="登入" onclick="goFbLogin()">客製化FB登入</button>
+
+                <!--div class="fb-like"  data-share="true"  data-width="450"  data-show-faces="true"></div-->
+                <div id="status" style="margin-top:30px "></div>
+
+
+
+                <div id="me-feed">
+                    <table id="me-Table" class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <td>貼文時間</td>
+                                <td>貼文圖片</td>
+                                <td>訊息內容</td>
+                                <td>回文數</td>
+                                <td>Like數</td>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <hr>
+
+                <div id="feed-div" style="margin-top:50px">
+                    <button id="logBtn" value="getPagesFeed" onclick="getPagesFeed()">取得粉絲團訊息</button> <br>
+                    粉絲團文章:
+                    <table id="feed-Table" class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <td>貼文時間</td>
+                                <td>貼文者</td>
+                                <td>訊息內容</td>
+                                <td>回文數</td>
+                                <td>Like數</td>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <hr>
+
+                <p>
+                    <button id="logBtn" value="postPagesFeed" onclick="postPagesFeed()">發文到粉絲團</button> <br> 
+                    發文欄位介紹:<br>
+                    <img src="https://lh3.googleusercontent.com/7RlAXoUtohB_k2IL2djB3BuHVo8tToEVwWo01xvEmAs=w653-h361-no">
+                </p>
+
+
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+
+
+
+
+
+    <!-- Modal -->
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="myModalLabel">內容</h4>
+                </div>
+                <div class="modal-body">
+                    <table id="model-Table" class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <td>貼文時間</td>
+                                <td>貼文者ID</td>
+                                <td>貼文者</td>
+                                <td>訊息內容</td>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+</body>
+</html>
